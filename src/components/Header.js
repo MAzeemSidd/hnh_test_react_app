@@ -2,7 +2,12 @@ import React from 'react'
 import {Navbar, Nav, Button, Row, Col, Container} from 'react-bootstrap';
 import '../App.css'
 
-const Home = () => {
+const Header = ({handleShow, handleLoginModalOpen, isLoggedIn, setIsLoggedIn}) => {
+    console.log('Home', isLoggedIn)
+    const onLoggingOut = () => {
+        localStorage.setItem('loginStatus', JSON.stringify(false))
+        setIsLoggedIn(false)
+    }
   return (
     <Row className='slide-in-down gx-4'>
 
@@ -26,12 +31,19 @@ const Home = () => {
         </Col>
 
         <Col className='col-3 d-flex justify-content-center align-items-center' style={{height: '75px'}}>
-            <button className='border-0 button' style={{backgroundColor: 'transparent', borderColor: '#ccc'}}>Login</button>
-            <text className='text-secondary'>/</text>
-            <button className='border-0 button' style={{backgroundColor: 'transparent', borderColor: '#ccc'}}>SignUp</button>
+            {
+                isLoggedIn ?
+                <Button onClick={onLoggingOut} className='btn-primary'>Logout</Button>
+                :
+                <>
+                    <button onClick={handleLoginModalOpen} className='border-0 button' style={{backgroundColor: 'transparent', borderColor: '#ccc'}}>Login</button>
+                    <text className='text-secondary'>/</text>
+                    <button onClick={handleShow} className='border-0 button' style={{backgroundColor: 'transparent', borderColor: '#ccc'}}>SignUp</button>
+                </>
+            }
         </Col>
     </Row>
   )
 }
 
-export default Home
+export default Header

@@ -103,7 +103,8 @@
 
 .chat-card .chat-area {
   display: flex;
-  flex-direction: column-reverse;
+  flex-direction: column;
+  justify-content: flex-end;
   background: rgb(243, 240, 240);
   min-height: 334px;
   padding: 10px;
@@ -120,7 +121,7 @@
   color: white;
   font-size: 11px;
   text-align: left;
-  width: 220px;
+  max-width: 220px;
   padding: 5px 10px;
   border-top-right-radius: 10px;
   border-top-left-radius: 10px;
@@ -137,7 +138,7 @@
   color: rgb(75, 73, 73);
   font-size: 11px;
   text-align: left;
-  width: 220px;
+  max-width: 220px;
   padding: 5px 10px;
   border-top-right-radius: 10px;
   border-bottom-right-radius: 10px;
