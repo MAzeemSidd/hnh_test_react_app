@@ -24,11 +24,14 @@ const LoginModal = ({showLoginModal, handleLoginModalClose}) => {
           console.log(JSON.stringify(values));
           try {
             const response = await axios.post('http://localhost:9000/users/login', values)
-            if(response.status === 200) localStorage.setItem('loginStatus', JSON.stringify(true));
+            if(response.status === 200){
+              localStorage.setItem('loginStatus', JSON.stringify(true));
+              localStorage.setItem('loginUser', JSON.stringify(response.data));
+              handleLoginModalClose();
+            }
           } catch (error) {
             console.log('error', error)
           }
-          handleLoginModalClose();
         }}
       >
         {({ errors, touched }) => (

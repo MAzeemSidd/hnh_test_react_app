@@ -163,6 +163,12 @@
   color: rgb(76, 75, 75);
 }
 
+.avatar {
+  vertical-align: middle;
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+}
 
 
 @keyframes slideInUp {

@@ -6,6 +6,7 @@ const Header = ({handleShow, handleLoginModalOpen, isLoggedIn, setIsLoggedIn}) =
     console.log('Home', isLoggedIn)
     const onLoggingOut = () => {
         localStorage.setItem('loginStatus', JSON.stringify(false))
+        localStorage.setItem('loginUser', JSON.stringify(null))
         setIsLoggedIn(false)
     }
   return (

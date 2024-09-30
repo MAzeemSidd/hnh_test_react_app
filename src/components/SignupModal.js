@@ -34,11 +34,14 @@ const SignupModal = ({showSignupModal, handleClose}) => {
           console.log(JSON.stringify(values));
           try {
             const response = await axios.post('http://localhost:9000/users/signup', values)
-            if(response.status === 200) localStorage.setItem('loginStatus', JSON.stringify(true));
-          } catch (error) {
-            console.log('error', error)
+            if(response.status === 200){
+              localStorage.setItem('loginStatus', JSON.stringify(true));
+              localStorage.setItem('loginUser', JSON.stringify(response.data));
+              handleClose();
+            }
+          } catch(err) {
+            console.log(err)
           }
-          handleClose();
         }}
       >
         {({ errors, touched }) => (
