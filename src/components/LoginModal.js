@@ -15,8 +15,6 @@ const loginSchema = Yup.object().shape({
 const LoginModal = ({showLoginModal, handleLoginModalClose}) => {
   const auth = useContext(AuthContext)
 
-  console.log('auth.loginStatus - from LoginModal', auth.loginStatus, auth.userData)
-
   return (<>
     <Modal show={showLoginModal} onHide={handleLoginModalClose}>
       <Formik

@@ -1,4 +1,4 @@
-import React, { useContext } from 'react'
+import React, { useState, useContext } from 'react'
 import {Navbar, Nav, Button, Row, Col, Container} from 'react-bootstrap';
 import '../App.css'
 import { AuthContext } from '../context/LoginContext';
@@ -6,11 +6,10 @@ import { AuthContext } from '../context/LoginContext';
 const Header = ({handleShow, handleLoginModalOpen}) => {
     const auth = useContext(AuthContext)
 
-    console.log('auth.loginStatus - from Header', auth.loginStatus)
-
     const onLoggingOut = () => {
         auth.logoutUser()
     }
+
   return (
     <Row className='slide-in-down gx-4'>
 
