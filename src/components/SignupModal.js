@@ -1,8 +1,9 @@
 import axios from 'axios';
 import { Field, Formik, Form as FormikForm } from 'formik'
-import React, { useState } from 'react'
+import React, { useContext, useState } from 'react'
 import { Button, Modal } from 'react-bootstrap'
 import * as Yup from 'yup';
+import { AuthContext } from '../context/LoginContext';
 
 const SignupSchema = Yup.object().shape({
   firstname: Yup.string()
@@ -20,6 +21,10 @@ const SignupSchema = Yup.object().shape({
 });
 
 const SignupModal = ({showSignupModal, handleClose}) => {
+  const auth = useContext(AuthContext)
+
+  console.log('auth.loginStatus - from SignupModal', auth.loginStatus, auth.userData)
+
   return (<>
     <Modal show={showSignupModal} onHide={handleClose}>
       <Formik
@@ -35,8 +40,9 @@ const SignupModal = ({showSignupModal, handleClose}) => {
           try {
             const response = await axios.post('http://localhost:9000/users/signup', values)
             if(response.status === 200){
-              localStorage.setItem('loginStatus', JSON.stringify(true));
-              localStorage.setItem('loginUser', JSON.stringify(response.data));
+              auth.loginUser(response.data)
+              // localStorage.setItem('loginStatus', JSON.stringify(true));
+              // localStorage.setItem('loginUser', JSON.stringify(response.data));
               handleClose();
             }
           } catch(err) {

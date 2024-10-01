@@ -5,6 +5,7 @@ import Chat from './components/Chat';
 import Header from './components/Header';
 import SignupModal from './components/SignupModal';
 import LoginModal from './components/LoginModal';
+import { AuthProvider } from './context/LoginContext';
 
 function App() {
   const [showLoginModal, setShowLoginModal] = useState(false)
@@ -17,13 +18,9 @@ function App() {
 
   // Check localStorage on component mount
   useEffect(() => {
-    const storedValue = JSON.parse(localStorage.getItem('loginStatus'));
-    console.log('storedValue',typeof storedValue)
-    if (storedValue) {
-      const loginStatus = JSON.parse(storedValue)
-      console.log('loginStatus', loginStatus)
-      setIsLoggedIn(loginStatus);
-    }
+    const loginStatus = localStorage.getItem('loginStatus');
+
+    setIsLoggedIn(loginStatus);
   }, [showLoginModal, showSignupModal]);
 
   const handleClose = () => setShowSignupModal(false);
@@ -31,11 +28,13 @@ function App() {
 
   return (
     <div className='App container-fluid bg-light'>
-      <Header handleShow={handleShow} handleLoginModalOpen={()=>setShowLoginModal(true)} isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn} />
-      <Body />
-      <Chat />
-      <LoginModal showLoginModal={showLoginModal} handleLoginModalClose={()=>setShowLoginModal(false)} />
-      <SignupModal showSignupModal={showSignupModal} handleClose={handleClose} />
+      <AuthProvider>
+        <Header handleShow={handleShow} handleLoginModalOpen={()=>setShowLoginModal(true)} />
+        <Body />
+        <Chat isLoggedIn={isLoggedIn} handleLoginModalOpen={()=>setShowLoginModal(true)} />
+        <LoginModal showLoginModal={showLoginModal} handleLoginModalClose={()=>setShowLoginModal(false)} />
+        <SignupModal showSignupModal={showSignupModal} handleClose={handleClose} />
+      </AuthProvider>
     </div>
   );
 }

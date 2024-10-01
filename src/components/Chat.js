@@ -1,7 +1,8 @@
 import axios from 'axios';
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useContext, useEffect, useMemo, useState } from 'react'
 import { Alert, Button, Col, Image, ListGroup, Row } from 'react-bootstrap'
 import { io } from 'socket.io-client';
+import { AuthContext } from '../context/LoginContext';
 
 const ResponseChat = ({message}) => (
     <div className='response-chat-div'>
@@ -16,6 +17,7 @@ const UserChat = ({message}) => (
 )
 
 const ChatDialogueBox = ({isOpen, onClose}) => {
+    const auth = useContext(AuthContext)
     const [Socket, setSocket] = useState(null);
     const [msg, setMsg] = useState('')
     const [chatMsg, setChatMsg] = useState([])
@@ -109,7 +111,8 @@ const ChatDialogueBox = ({isOpen, onClose}) => {
                     <ListGroup defaultActiveKey="#link1">
                         {
                             userList.length !== 0 &&
-                            userList.map(user=>(
+                            // Making sure the loggedUser must not show in the other user list in chat
+                            userList.filter(user=>user.id !== auth.userData.id).map(user=>(
                                 <ListGroup.Item key={user?.id} action onClick={()=>setSelectedUser(user)}>
                                     <Row >
                                         <Col xs={2}>
@@ -135,12 +138,18 @@ const ChatBtn = ({onOpen}) => (
     </button>
 )
 
-const Chat = () => {
+const Chat = ({handleLoginModalOpen}) => {
+  const auth = useContext(AuthContext)
   const [isOpen, setIsOpen] = useState(false)
   
+  const handleChatOpen = () => {
+    if(auth.loginStatus) return setIsOpen(true);
+    handleLoginModalOpen();
+  }
+
   return (
     <>
-        {isOpen ? <ChatDialogueBox isOpen={isOpen} onClose={()=>setIsOpen(false)} /> : <ChatBtn onOpen={()=>setIsOpen(true)} />}
+        {isOpen ? <ChatDialogueBox isOpen={isOpen} onClose={()=>setIsOpen(false)} /> : <ChatBtn onOpen={handleChatOpen} />}
     </>
   )
 }

@@ -1,13 +1,15 @@
-import React from 'react'
+import React, { useContext } from 'react'
 import {Navbar, Nav, Button, Row, Col, Container} from 'react-bootstrap';
 import '../App.css'
+import { AuthContext } from '../context/LoginContext';
 
-const Header = ({handleShow, handleLoginModalOpen, isLoggedIn, setIsLoggedIn}) => {
-    console.log('Home', isLoggedIn)
+const Header = ({handleShow, handleLoginModalOpen}) => {
+    const auth = useContext(AuthContext)
+
+    console.log('auth.loginStatus - from Header', auth.loginStatus)
+
     const onLoggingOut = () => {
-        localStorage.setItem('loginStatus', JSON.stringify(false))
-        localStorage.setItem('loginUser', JSON.stringify(null))
-        setIsLoggedIn(false)
+        auth.logoutUser()
     }
   return (
     <Row className='slide-in-down gx-4'>
@@ -33,7 +35,7 @@ const Header = ({handleShow, handleLoginModalOpen, isLoggedIn, setIsLoggedIn}) =
 
         <Col className='col-3 d-flex justify-content-center align-items-center' style={{height: '75px'}}>
             {
-                isLoggedIn ?
+                auth.loginStatus ?
                 <Button onClick={onLoggingOut} className='btn-primary'>Logout</Button>
                 :
                 <>
