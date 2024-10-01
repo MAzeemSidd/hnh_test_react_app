@@ -21,13 +21,13 @@ export const AuthProvider = ({ children }) => {
   }
 
   // Initialize authentication state from localStorage on mount
-  useEffect(() => {
-    const authData = JSON.parse(localStorage.getItem('auth'));
-    if (authData && authData.status) {
-      setLoginStatus(true);
-      setUserData(authData.data);
-    }
-  }, []); // Empty dependency array ensures this runs once on mount
+//   useEffect(() => {
+//     const authData = JSON.parse(localStorage.getItem('auth'));
+//     if (authData && authData.status) {
+//       setLoginStatus(true);
+//       setUserData(authData.data);
+//     }
+//   }, []); // Empty dependency array ensures this runs once on mount
 
   return (
     <AuthContext.Provider value={{ loginStatus, userData, loginUser, logoutUser }}>

@@ -18,6 +18,7 @@ const UserChat = ({message}) => (
 
 const ChatDialogueBox = ({isOpen, onClose}) => {
     const auth = useContext(AuthContext)
+    const [userId, setUserId] = useState(auth.userData.id)
     const [Socket, setSocket] = useState(null);
     const [msg, setMsg] = useState('')
     const [chatMsg, setChatMsg] = useState([])
@@ -25,9 +26,8 @@ const ChatDialogueBox = ({isOpen, onClose}) => {
     const [selectedUser, setSelectedUser] = useState(null)
     const [userList, setUserList] = useState([])
 
-    const uid = useMemo(()=>Math.floor(Math.random() * (999 - 100 + 1)) + 100,[])
-    // const socket = useMemo(()=>io('http  ://localhost:9000'), [])
-    console.log('users', userList)
+    // const uid = useMemo(()=>Math.floor(Math.random() * (999 - 100 + 1)) + 100,[])
+    // const socket = useMemo(()=>io('http://localhost:9000'), [])
     console.log('selectedUser', selectedUser)
 
     const getUserList = async () => {
@@ -46,29 +46,52 @@ const ChatDialogueBox = ({isOpen, onClose}) => {
 
     useEffect(() => {
       if(isOpen) {
-        var socket = io('http://localhost:9000')
+        const socket = io('http://localhost:9000')
         setSocket(socket)
-
-        // socket.on('get_users', data=>{
-        //   console.log('users', data)   
-        // })
         
-        socket.on('message', data=>{
-          console.log('data', data)
-          setConnetionError('')
-          setChatMsg(prev=>[...prev, data])
-        })
+        // socket.on('message', data=>{
+        //   console.log('data', data)
+        //   setConnetionError('')
+        //   setChatMsg(prev=>[...prev, data])
+        // })
 
-        socket.on('connect_error', (error) => {
-          setConnetionError(error.message);
-        });
+        // socket.on('connect_error', (error) => {
+        //   setConnetionError(error.message);
+        // });
       }
-    return () => {
-      socket.off('message'); // Remove the 'message' listener
-      socket.disconnect(); // Disconnect the socket
-    };
-      
+      return () => {
+        Socket?.off('message'); // Remove the 'message' listener
+        Socket?.disconnect(); // Disconnect the socket
+      }
     }, [isOpen])
+
+    useEffect(() => {
+        if (Socket) {
+
+            Socket.on('connect', () => {
+                console.log(`Connected with socket ID: ${Socket.id}`);
+                Socket.emit('register', userId);
+            });
+
+            // Listen for incoming messages
+            Socket.on('message', (data) => {
+                console.log(`Message from User ${data.from}: ${data.message}`);
+                setConnetionError('')
+                setChatMsg(prev=>[...prev, data])
+            });
+
+            // Listen for error messages
+            Socket.on('error', (error) => {
+                console.error('Error:', error.message);
+            });
+        }
+        return () => {
+            Socket?.off('connect')
+            Socket?.off('message'); // Remove the 'message' listener
+            Socket?.off('error') // Remove the 'message' listener
+            Socket?.disconnect(); // Disconnect the socket
+        }
+    }, [Socket, userId]);
 
     useEffect(() => {
       console.log('chatMsg', chatMsg)
@@ -76,9 +99,19 @@ const ChatDialogueBox = ({isOpen, onClose}) => {
     
 
     const sendMessageToServer = () => {
-        if(Socket && msg.trim() !== ''){
-            Socket.emit('chat', {message: msg, uid})
-            setMsg('')
+        // if(Socket && msg.trim() !== ''){
+        //     Socket.emit('chat', {message: msg, uid})
+        //     setMsg('')
+        // }
+        if (Socket && selectedUser.id && msg.trim() !== '') {
+            Socket.emit('chat', {
+              from: userId,
+              to: selectedUser.id,
+              message: msg.trim(),
+            });
+            
+            // setChatMsg(prev => [ ...prev, { from: userId, message: message.trim() } ]);
+            setMsg('');
         }
     } 
 
@@ -93,8 +126,8 @@ const ChatDialogueBox = ({isOpen, onClose}) => {
                     <>
                         <div className='chat-area'>
                             {
-                                chatMsg.map(item=>(
-                                    item.uid === uid ? <UserChat message={item.message} /> : <ResponseChat message={item.message} />
+                                userId && chatMsg.map(item=>(
+                                    item.from === userId ? <UserChat message={item.message} /> : <ResponseChat message={item.message} />
                                 ))
                             }
                             {
