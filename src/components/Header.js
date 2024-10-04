@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react'
+import { useState, useContext, useEffect } from 'react'
 import {Navbar, Nav, Button, Row, Col, Container} from 'react-bootstrap';
 import '../App.css'
 import { AuthContext } from '../context/LoginContext';
@@ -6,12 +6,31 @@ import { AuthContext } from '../context/LoginContext';
 const Header = ({handleShow, handleLoginModalOpen}) => {
     const auth = useContext(AuthContext)
 
+    const [bgColor, setBgColor] = useState("transparent");
+
+    useEffect(() => {
+        const handleScroll = () => {
+            // Change background color after scrolling down 100px
+            if (window.scrollY > 100) {
+                setBgColor("#b5c8d5");
+            } else {
+                setBgColor("transparent");
+            }
+        };
+
+        window.addEventListener("scroll", handleScroll);
+
+        return () => {
+            window.removeEventListener("scroll", handleScroll);
+        };
+    }, []);
+
     const onLoggingOut = () => {
         auth.logoutUser()
     }
 
   return (
-    <Row className='slide-in-down gx-4'>
+    <Row className='header slide-in-down gx-4' style={{backgroundColor: bgColor, transition: 'background-color 0.2s ease'}}>
 
         <Col className="col-9">
         <Row className='gx-4'>

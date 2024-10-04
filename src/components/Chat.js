@@ -25,6 +25,7 @@ const ChatDialogueBox = ({isOpen, onClose}) => {
     const [connetionError, setConnetionError] = useState('')
     const [selectedUser, setSelectedUser] = useState(null)
     const [userList, setUserList] = useState([])
+    const [chatList, setChatList] = useState([])
     const socketRef = useRef(null) //Using Ref instead of State
     const [chats, setChats] = useState({})
 
@@ -36,6 +37,15 @@ const ChatDialogueBox = ({isOpen, onClose}) => {
             const users = await axios.get('http://localhost:9000/users');
             const filteredUser = users?.data?.filter(user=>user.id !== auth.userData.id)
             setUserList(filteredUser)
+        } catch (err) {
+            console.log(err)
+        }
+    }
+
+    const getChatList = async () => {
+        try {
+            const users = await axios.get('http://localhost:9000/chats/list');
+            setChatList(users?.data)
         } catch (err) {
             console.log(err)
         }
@@ -60,16 +70,6 @@ const ChatDialogueBox = ({isOpen, onClose}) => {
     useEffect(() => {
       if(isOpen) {
         socketRef.current = io('http://localhost:9000')
-        
-        // socket.on('message', data=>{
-        //   console.log('data', data)
-        //   setConnetionError('')
-        //   setChatMsg(prev=>[...prev, data])
-        // })
-
-        // socket.on('connect_error', (error) => {
-        //   setConnetionError(error.message);
-        // });
 
         //Register the user on connection
         socketRef.current.on('connect', () => {
@@ -107,40 +107,25 @@ const ChatDialogueBox = ({isOpen, onClose}) => {
 
 
     useEffect(() => {
-    //   if(chatMsg) {
-          console.log('chatMsg', chatMsg)
-        //   //Adding chat messages from chatMsg to chats state to seperate chats
-        //   const newObj = chats
-        //   if(chatMsg[chatMsg.length - 1]?.from in newObj) {
-        //     newObj[chatMsg[chatMsg.length - 1]?.from]?.push(chatMsg[chatMsg.length - 1])
-        //   } else {
-        //     newObj[chatMsg[chatMsg.length - 1]?.to]?.push(chatMsg[chatMsg.length - 1])
-        //   }
-        //   chatMsg.forEach(item=>{
-        //     //If from field is available in chats then push that chat object into it.
-        //     if(item.from in newObj) newObj[item.from].push(item);
-        //     //If from id field is not in chat object then push into the to field.
-        //     else newObj[item.to].push(item);
-        //   })
-        //   setChats(newObj)
-    //   }
-    if (chatMsg.length > 0) {
-        const lastMsg = chatMsg[chatMsg.length - 1];
-        const { from, to } = lastMsg;
+        console.log('chatMsg', chatMsg)
     
-        setChats(prevChats => {
-            // Create a shallow copy of the previous chats
-            const newChats = { ...prevChats };
+        if (chatMsg.length > 0) {
+            const lastMsg = chatMsg[chatMsg.length - 1];
+            const { from, to } = lastMsg;
         
-            // Determine the key to update (either 'from' or 'to')
-            const key = newChats[from] ? from : to;
-        
-            if (key) {
-                // Create a new array for the specific chat to ensure immutability
-                newChats[key] = [...newChats[key], lastMsg];
-            }
-        
-            return newChats;
+            setChats(prevChats => {
+                // Create a shallow copy of the previous chats
+                const newChats = { ...prevChats };
+            
+                // Determine the key to update (either 'from' or 'to')
+                const key = newChats[from] ? from : to;
+            
+                if (key) {
+                    // Create a new array for the specific chat to ensure immutability
+                    newChats[key] = [...newChats[key], lastMsg];
+                }
+            
+                return newChats;
             });
         }
     }, [chatMsg])
@@ -148,6 +133,14 @@ const ChatDialogueBox = ({isOpen, onClose}) => {
     //seeing selectedUser everytime when change
     useEffect(() => {
       console.log('selectedUser', selectedUser)
+      if(selectedUser){
+        try {
+            const oneOnOneChat = axios.get('http://localhost:9000/chats');
+
+        } catch {
+          selectedUser(null)  
+        }
+      }
     }, [selectedUser])
 
     //seeing chats on state change
@@ -166,6 +159,7 @@ const ChatDialogueBox = ({isOpen, onClose}) => {
               from: userId,
               to: selectedUser.id,
               message: msg.trim(),
+              chatId: (userId < selectedUser.id) ? `${userId}-${selectedUser.id}` : `${selectedUser.id}-${userId}`
             });
             
             setMsg('');
@@ -190,10 +184,10 @@ const ChatDialogueBox = ({isOpen, onClose}) => {
                         </Button>
                     }
                 </Card.Header>
-                <Card.Body style={{overflowY: 'auto'}}>
+                <Card.Body style={{overflowY: 'scroll', maxHeight: '400px'}}>
                     {
                         selectedUser ?
-                        <>
+                        <div style={{display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%', paddingBottom: 5}}>
                             {
                                 userId && chats[selectedUser?.id]?.map(item=>(
                                     item.from === userId ? <UserChat message={item.message} /> : <ResponseChat message={item.message} />
@@ -203,7 +197,7 @@ const ChatDialogueBox = ({isOpen, onClose}) => {
                                 connetionError &&
                                 <Alert variant='danger'>Connection Error</Alert>
                             }
-                        </>
+                        </div>
                         :
                         <ListGroup defaultActiveKey="#link1">
                             {
