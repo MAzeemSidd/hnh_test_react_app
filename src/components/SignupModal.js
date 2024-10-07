@@ -37,8 +37,9 @@ const SignupModal = ({showSignupModal, handleClose}) => {
           console.log(JSON.stringify(values));
           try {
             const response = await axios.post('http://localhost:9000/users/signup', values)
-            if(response.status === 200){
-              auth.loginUser(response.data)
+            if(response?.status === 200){
+              auth.loginUser(response?.data)
+              console.log('response.data', response?.data)
               // localStorage.setItem('loginStatus', JSON.stringify(true));
               // localStorage.setItem('loginUser', JSON.stringify(response.data));
               handleClose();

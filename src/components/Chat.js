@@ -62,8 +62,8 @@ const ChatDialogueBox = ({isOpen, onClose}) => {
             //     `http://localhost:9000/chats?chatId=${chatId}&mesageId=${lastMsgId}`
             //     :
             //     `http://localhost:9000/chats?chatId=${chatId}`
-            const query = `http://localhost:9000/chats?chatId=${chatId}`
-            const oneOnOneChat = await axios.get(query);
+            const url = `http://localhost:9000/chats?chatId=${chatId}`
+            const oneOnOneChat = await axios.get(url, { headers: { Authorization: `Bearer ${auth.userData?.token}`, userId: auth.userData?.id } });
             console.log('oneOnOneChat', oneOnOneChat?.data)
             
             setChats(prevChats => {
@@ -75,7 +75,8 @@ const ChatDialogueBox = ({isOpen, onClose}) => {
             });
             
         } catch {
-          selectedUser(null)  
+            setSelectedChatId('')
+            setSelectedUser(null)
         }
     }
 

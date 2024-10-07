@@ -26,8 +26,9 @@ const LoginModal = ({showLoginModal, handleLoginModalClose}) => {
         onSubmit={async (values) => {
           try {
             const response = await axios.post('http://localhost:9000/users/login', values)
-            if(response.status === 200){
-              auth.loginUser(response.data)
+            if(response?.status === 200){
+              auth.loginUser(response?.data)
+              console.log(response?.data)
               handleLoginModalClose();
             }
           } catch (error) {
