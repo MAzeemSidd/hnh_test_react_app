@@ -19,18 +19,15 @@ const UserChat = ({message}) => (
 const ChatDialogueBox = ({isOpen, onClose}) => {
     const auth = useContext(AuthContext)
     const [userId, setUserId] = useState(auth.userData.id)
-    const [Socket, setSocket] = useState(null);
     const [msg, setMsg] = useState('')
     const [chatMsg, setChatMsg] = useState([])
     const [connetionError, setConnetionError] = useState('')
     const [selectedUser, setSelectedUser] = useState(null)
     const [userList, setUserList] = useState([])
-    const [chatList, setChatList] = useState([])
     const socketRef = useRef(null) //Using Ref instead of State
     const [chats, setChats] = useState({})
-
-    // const uid = useMemo(()=>Math.floor(Math.random() * (999 - 100 + 1)) + 100,[])
-    // const socket = useMemo(()=>io('http://localhost:9000'), [])
+    const [selectedChatId, setSelectedChatId] = useState('')
+    const lastMsgRef = useRef(null)
 
     const getUserList = async () => {
         try {
@@ -44,28 +41,61 @@ const ChatDialogueBox = ({isOpen, onClose}) => {
 
     const getChatList = async () => {
         try {
-            const users = await axios.get('http://localhost:9000/chats/list');
-            setChatList(users?.data)
+            const chatsList = await axios.get('http://localhost:9000/chats/list');
+            console.log('chatsList', chatsList?.data)
+
+            const initialChats = {} //Temp object to add fields in it
+            chatsList?.data?.forEach(item=>{
+                initialChats[item.chatId] = [];
+            })
+            setChats(initialChats) //Now set the chats state to initialChats object
         } catch (err) {
             console.log(err)
         }
     }
 
-    useEffect(() => {
-      getUserList()
-    }, [])
+    const getAParticularChat = async (chatId) => {
+        try {
+            console.log('chatId', chatId)
+            // const messageId = chats[chatId][chats[chatId].length - 1]?.id
+            // const query = lastMsgId ?
+            //     `http://localhost:9000/chats?chatId=${chatId}&mesageId=${lastMsgId}`
+            //     :
+            //     `http://localhost:9000/chats?chatId=${chatId}`
+            const query = `http://localhost:9000/chats?chatId=${chatId}`
+            const oneOnOneChat = await axios.get(query);
+            console.log('oneOnOneChat', oneOnOneChat?.data)
+            
+            setChats(prevChats => {
+                // Create a shallow copy of the previous chats
+                const newChats = { ...prevChats };
+                // Add 
+                newChats[chatId] = [...newChats[chatId], ...oneOnOneChat?.data];
+                return newChats;
+            });
+            
+        } catch {
+          selectedUser(null)  
+        }
+    }
+
+    const sendMessageToServer = () => {
+        if (socketRef.current && selectedUser.id && msg.trim() !== '') {
+            socketRef.current.emit('chat', {
+              from: userId,
+              to: selectedUser.id,
+              message: msg.trim(),
+              chatId: (userId < selectedUser.id) ? `${userId}-${selectedUser.id}` : `${selectedUser.id}-${userId}`
+            });
+            
+            setMsg('');
+        }
+    }
 
     useEffect(() => {
-      //Creating chat object
-      if(userList.length > 0) {
-        const initialChats = {}
-        userList.forEach(item=>{
-          initialChats[item.id] = [];
-        })
-        setChats(initialChats)
-      }
-    }, [userList])
-    
+        getUserList(); //Fetching Users
+        getChatList(); //Fetching Chats in db
+    }, []) 
 
     useEffect(() => {
       if(isOpen) {
@@ -107,104 +137,94 @@ const ChatDialogueBox = ({isOpen, onClose}) => {
 
 
     useEffect(() => {
-        console.log('chatMsg', chatMsg)
-    
-        if (chatMsg.length > 0) {
-            const lastMsg = chatMsg[chatMsg.length - 1];
-            const { from, to } = lastMsg;
-        
-            setChats(prevChats => {
-                // Create a shallow copy of the previous chats
-                const newChats = { ...prevChats };
-            
-                // Determine the key to update (either 'from' or 'to')
-                const key = newChats[from] ? from : to;
-            
-                if (key) {
-                    // Create a new array for the specific chat to ensure immutability
-                    newChats[key] = [...newChats[key], lastMsg];
-                }
-            
-                return newChats;
-            });
-        }
-    }, [chatMsg])
+      if (chatMsg.length > 0) {
+        const lastMsg = chatMsg[chatMsg.length - 1];
+        const { chatId } = lastMsg;
 
-    //seeing selectedUser everytime when change
+        setChats(prevChats => {
+          const newChats = { ...prevChats };
+          newChats[chatId] = [...newChats[chatId], lastMsg];
+          return newChats;
+        });
+      }
+    }, [chatMsg]);
+
     useEffect(() => {
       console.log('selectedUser', selectedUser)
-      if(selectedUser){
-        try {
-            const oneOnOneChat = axios.get('http://localhost:9000/chats');
+      if (selectedUser) {
+        const _selectedChatId = (userId < selectedUser?.id) ? `${userId}-${selectedUser?.id}` : `${selectedUser?.id}-${userId}`;
+        // Clear the previous chat if a new user is selected
+        setChats((prevChats) => {
+        const newChats = { ...prevChats };
+          newChats[_selectedChatId] = []; // Clear the chat for this user before fetching new messages
+          return newChats;
+        });
+        setSelectedChatId(_selectedChatId);
+      }
+    }, [selectedUser]);
 
-        } catch {
-          selectedUser(null)  
+    useEffect(() => {
+      if (selectedChatId) {
+        if (!chats[selectedChatId] || chats[selectedChatId].length === 0) {
+            getAParticularChat(selectedChatId);
         }
       }
-    }, [selectedUser])
+    }, [selectedChatId]);
 
     //seeing chats on state change
     useEffect(() => {
       console.log('chats', chats)
+    //   if(lastMsgId && chats[selectedChatId][chats[selectedChatId]?.length - 1]?.id != lastMsgId) {
+    //     setLastMsgId(chats[selectedChatId][chats[selectedChatId].length - 1]?.id)
+    //   }
+      /* Scroll to the end of the chat to see latest messages.
+      We can pass { behavior: 'smooth' } into scrollIntoView function for smooth scroll. */
+      if(selectedChatId && chats[selectedChatId].length !== 0) lastMsgRef.current?.scrollIntoView();
     }, [chats])
-    
-
-    const sendMessageToServer = () => {
-        // if(Socket && msg.trim() !== ''){
-        //     Socket.emit('chat', {message: msg, uid})
-        //     setMsg('')
-        // }
-        if (socketRef.current && selectedUser.id && msg.trim() !== '') {
-            socketRef.current.emit('chat', {
-              from: userId,
-              to: selectedUser.id,
-              message: msg.trim(),
-              chatId: (userId < selectedUser.id) ? `${userId}-${selectedUser.id}` : `${selectedUser.id}-${userId}`
-            });
-            
-            setMsg('');
-        }
-    } 
 
     return(
         <div className='chat-card slide-in-up'>
             <Card style={{height: '100%', width: '100%'}}>
-                <Card.Header className='py-1 px-1 d-flex flex-row-reverse justify-content-between'>
-                    <Button size="sm" className='text-secondary' variant="outline-light" onClick={onClose}><i class="bi bi-x-lg"></i></Button>
+                <Card.Header className='py-1 px-1 d-flex flex-row-reverse justify-content-between bg-primary'>
+                    <button className='btn btn-sm btn-primary text-light border-0' onClick={onClose}><i class="bi bi-x-lg"></i></button>
                     {
                         selectedUser &&
-                        <Button
-                            size="sm"
-                            className='w-25 text-secondary'
-                            variant="outline-light"
-                            onClick={()=>setSelectedUser(null)}
+                        <button
+                            className='btn btn-sm btn-primary text-light border-0'
+                            onClick={()=>{
+                                setSelectedChatId('')
+                                setSelectedUser(null)
+                            }}
                         >
                             <i class="bi bi-arrow-left me-1"></i>
-                            <text>Back</text>
-                        </Button>
+                            {/* <text>Back</text> */}
+                        </button>
                     }
                 </Card.Header>
-                <Card.Body style={{overflowY: 'scroll', maxHeight: '400px'}}>
+                <Card.Body className='card-body' style={{overflowY: 'scroll', maxHeight: '400px'}}>
                     {
-                        selectedUser ?
-                        <div style={{display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%', paddingBottom: 5}}>
+                        selectedChatId && chats ?
+                        <div style={{display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', minHeight: '100%', paddingBottom: 5, overflowY: 'auto'}}>
                             {
-                                userId && chats[selectedUser?.id]?.map(item=>(
-                                    item.from === userId ? <UserChat message={item.message} /> : <ResponseChat message={item.message} />
+                                chats[selectedChatId]?.map((item, index)=>(
+                                    item.from === userId ? 
+                                    (<UserChat message={item.message} />)
+                                    :
+                                    (<ResponseChat message={item.message} />)
                                 ))
                             }
                             {
                                 connetionError &&
                                 <Alert variant='danger'>Connection Error</Alert>
                             }
+                            <div ref={lastMsgRef} />
                         </div>
                         :
-                        <ListGroup defaultActiveKey="#link1">
+                        <ListGroup defaultActiveKey="#link1" style={{overflowY: 'auto', minHeight: '100%'}}>
                             {
                                 userList.length !== 0 &&
-                                // Making sure the loggedUser must not show in the other user list in chat
                                 userList.map(user=>(
-                                    <ListGroup.Item key={user?.id} action onClick={()=>setSelectedUser(user)}>
+                                    <ListGroup.Item key={user?.id} action onClick={() => setSelectedUser(user)}>
                                         <div className='d-flex align-items-center'>
                                             <img
                                                 src="https://media.istockphoto.com/id/1337144146/vector/default-avatar-profile-icon-vector.jpg?s=612x612&w=0&k=20&c=BIbFwuv7FxTWvh5S3vB6bkT0Qv8Vn8N5Ffseq84ClGI="
@@ -231,52 +251,6 @@ const ChatDialogueBox = ({isOpen, onClose}) => {
                 </Card.Footer>
             </Card>
         </div>
-        // <div class="chat-card slide-in-up card">
-        //     <div class="card-body">
-        //         <div className='card-header'>
-        //             <i class="bi bi-x-square-fill" onClick={onClose}></i>
-        //         </div>
-        //         {
-        //             selectedUser ?
-        //             <>
-        //                 <div className='chat-area'>
-        //                     {
-        //                         userId && selectedUser?.id && chats[selectedUser?.id]?.map(item=>(
-        //                             item.from === userId ? <UserChat message={item.message} /> : <ResponseChat message={item.message} />
-        //                         ))
-        //                     }
-        //                     {
-        //                         connetionError &&
-        //                         <Alert variant='danger'>Connection Error</Alert>
-        //                     }
-        //                 </div>
-        //                 <div className='card-input'>
-        //                     <input type='text' style={{width: '100%'}} value={msg} onKeyDown={(e)=>(e.key === 'Enter' && sendMessageToServer())} onChange={e=>setMsg(e.target.value)} />
-        //                     <Button onClick={sendMessageToServer}>Send</Button>
-        //                 </div>
-        //             </>
-        //             :
-        //             <ListGroup defaultActiveKey="#link1">
-        //                 {
-        //                     userList.length !== 0 &&
-        //                     // Making sure the loggedUser must not show in the other user list in chat
-        //                     userList.map(user=>(
-        //                         <ListGroup.Item key={user?.id} action onClick={()=>setSelectedUser(user)}>
-        //                             <Row >
-        //                                 <Col xs={2}>
-        //                                     <img src="https://media.istockphoto.com/id/1337144146/vector/default-avatar-profile-icon-vector.jpg?s=612x612&w=0&k=20&c=BIbFwuv7FxTWvh5S3vB6bkT0Qv8Vn8N5Ffseq84ClGI=" alt="Avatar" class="avatar" />
-        //                                 </Col>
-        //                                 <Col xs={10} className='my-auto'>
-        //                                     {user?.firstname + ' ' + user?.lastname}
-        //                                 </Col>
-        //                             </Row>
-        //                         </ListGroup.Item>
-        //                     ))
-        //                 }
-        //             </ListGroup>
-        //         }
-        //     </div>
-        // </div>
     )
 }
 

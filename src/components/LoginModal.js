@@ -24,7 +24,6 @@ const LoginModal = ({showLoginModal, handleLoginModalClose}) => {
         }}
         validationSchema={loginSchema}
         onSubmit={async (values) => {
-          console.log(JSON.stringify(values));
           try {
             const response = await axios.post('http://localhost:9000/users/login', values)
             if(response.status === 200){
