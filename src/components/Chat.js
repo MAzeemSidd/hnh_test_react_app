@@ -28,6 +28,7 @@ const ChatDialogueBox = ({isOpen, onClose}) => {
     const [chats, setChats] = useState({})
     const [selectedChatId, setSelectedChatId] = useState('')
     const lastMsgRef = useRef(null)
+    const [isDisconnected, setIsDisconnected] = useState(false)
 
     const getUserList = async () => {
         try {
@@ -57,13 +58,8 @@ const ChatDialogueBox = ({isOpen, onClose}) => {
     const getAParticularChat = async (chatId) => {
         try {
             console.log('chatId', chatId)
-            // const messageId = chats[chatId][chats[chatId].length - 1]?.id
-            // const query = lastMsgId ?
-            //     `http://localhost:9000/chats?chatId=${chatId}&mesageId=${lastMsgId}`
-            //     :
-            //     `http://localhost:9000/chats?chatId=${chatId}`
             const url = `http://localhost:9000/chats?chatId=${chatId}`
-            const oneOnOneChat = await axios.get(url, { headers: { Authorization: `Bearer ${auth.userData?.token}`, userId: auth.userData?.id } });
+            const oneOnOneChat = await axios.get(url, { headers: { Authorization: `Bearer ${auth.userData?.token}` } });
             console.log('oneOnOneChat', oneOnOneChat?.data)
             
             setChats(prevChats => {
@@ -76,7 +72,6 @@ const ChatDialogueBox = ({isOpen, onClose}) => {
             
         } catch {
             setSelectedChatId('')
-            setSelectedUser(null)
         }
     }
 
@@ -100,11 +95,16 @@ const ChatDialogueBox = ({isOpen, onClose}) => {
 
     useEffect(() => {
       if(isOpen) {
-        socketRef.current = io('http://localhost:9000')
+        socketRef.current = io('http://localhost:9000', {
+            extraHeaders: {
+                Authorization: `Bearer ${auth.userData?.token}`
+            }
+        })
 
         //Register the user on connection
         socketRef.current.on('connect', () => {
             console.log(`Connected with socket ID: ${socketRef.current.id}`);
+            setIsDisconnected(false)
             socketRef.current.emit('register', userId); //User Registeration
         });
     
@@ -123,6 +123,7 @@ const ChatDialogueBox = ({isOpen, onClose}) => {
 
         socketRef.current.on('disconnect', (reason) => {
             console.log('Disconnected:', reason);
+            setIsDisconnected(true)
         });
       }
       return () => {
@@ -180,7 +181,7 @@ const ChatDialogueBox = ({isOpen, onClose}) => {
     //   }
       /* Scroll to the end of the chat to see latest messages.
       We can pass { behavior: 'smooth' } into scrollIntoView function for smooth scroll. */
-      if(selectedChatId && chats[selectedChatId].length !== 0) lastMsgRef.current?.scrollIntoView();
+      if(selectedChatId && chats[selectedChatId]?.length !== 0) lastMsgRef.current?.scrollIntoView();
     }, [chats])
 
     return(
@@ -204,40 +205,60 @@ const ChatDialogueBox = ({isOpen, onClose}) => {
                 </Card.Header>
                 <Card.Body className='card-body' style={{overflowY: 'scroll', maxHeight: '400px'}}>
                     {
-                        selectedChatId && chats ?
-                        <div style={{display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', minHeight: '100%', paddingBottom: 5, overflowY: 'auto'}}>
-                            {
-                                chats[selectedChatId]?.map((item, index)=>(
-                                    item.from === userId ? 
-                                    (<UserChat message={item.message} />)
-                                    :
-                                    (<ResponseChat message={item.message} />)
-                                ))
-                            }
-                            {
-                                connetionError &&
-                                <Alert variant='danger'>Connection Error</Alert>
-                            }
-                            <div ref={lastMsgRef} />
+                        isDisconnected ?
+                        <div className='d-flex align-items-center justify-content-center' style={{minHeight: '320px'}}>
+                            <Alert variant='danger' className='text-danger py-1 px-3'>Socket Connection Disconnected</Alert>
                         </div>
                         :
-                        <ListGroup defaultActiveKey="#link1" style={{overflowY: 'auto', minHeight: '100%'}}>
+                        <>
                             {
-                                userList.length !== 0 &&
-                                userList.map(user=>(
-                                    <ListGroup.Item key={user?.id} action onClick={() => setSelectedUser(user)}>
-                                        <div className='d-flex align-items-center'>
-                                            <img
-                                                src="https://media.istockphoto.com/id/1337144146/vector/default-avatar-profile-icon-vector.jpg?s=612x612&w=0&k=20&c=BIbFwuv7FxTWvh5S3vB6bkT0Qv8Vn8N5Ffseq84ClGI="
-                                                alt="Avatar"
-                                                class="avatar ms-2 me-3"
-                                            />
-                                            <text >{user?.firstname + ' ' + user?.lastname}</text>
+                                selectedUser?.id ? <>
+                                    {
+                                        selectedChatId && chats ?
+                                        <div style={{display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', minHeight: '100%', paddingBottom: 5, overflowY: 'auto'}}>
+                                            {
+                                                chats[selectedChatId]?.map((item, index)=>(
+                                                    item.from === userId ? 
+                                                    (<UserChat message={item.message} />)
+                                                    :
+                                                    (<ResponseChat message={item.message} />)
+                                                ))
+                                            }
+                                            {
+                                                connetionError &&
+                                                <Alert variant='danger' className='text-danger'>Connection Error</Alert>
+                                            }
+                                            <div ref={lastMsgRef} />
                                         </div>
-                                    </ListGroup.Item>
-                                ))
+                                        : 
+                                        <div className='w-100'>
+                                            <text className='text-secondary d-flex flex-column justify-content-center' style={{minHeight: '320px'}}>
+                                                <span>No chat with</span>
+                                                <strong>{selectedUser?.firstname + ' ' + selectedUser?.lastname}</strong>
+                                            </text>
+                                        </div>
+                                    }
+                                </>
+                                :
+                                <ListGroup defaultActiveKey="#link1" style={{overflowY: 'auto', minHeight: '100%'}}>
+                                    {
+                                        userList.length !== 0 &&
+                                        userList.map(user=>(
+                                            <ListGroup.Item key={user?.id} action onClick={() => setSelectedUser(user)}>
+                                                <div className='d-flex align-items-center'>
+                                                    <img
+                                                        src="https://media.istockphoto.com/id/1337144146/vector/default-avatar-profile-icon-vector.jpg?s=612x612&w=0&k=20&c=BIbFwuv7FxTWvh5S3vB6bkT0Qv8Vn8N5Ffseq84ClGI="
+                                                        alt="Avatar"
+                                                        class="avatar ms-2 me-3"
+                                                    />
+                                                    <text className='d-inline-block text-truncate'>{user?.firstname + ' ' + user?.lastname}</text>
+                                                </div>
+                                            </ListGroup.Item>
+                                        ))
+                                    }
+                                </ListGroup>
                             }
-                        </ListGroup>
+                        </>
                     }
                 </Card.Body>
                 <Card.Footer className='d-flex px-1 py-1'>
