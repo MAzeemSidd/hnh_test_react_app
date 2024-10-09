@@ -1,6 +1,6 @@
 import axios from 'axios';
 import React, { useContext, useEffect, useMemo, useRef, useState } from 'react'
-import { Alert, Button, Card, Col, Image, ListGroup, Row } from 'react-bootstrap'
+import { Alert, Button, Card, Col, Image, ListGroup, Row, Spinner } from 'react-bootstrap'
 import { io } from 'socket.io-client';
 import { AuthContext } from '../context/LoginContext';
 
@@ -18,10 +18,10 @@ const UserChat = ({message}) => (
 
 const ChatDialogueBox = ({isOpen, onClose}) => {
     const auth = useContext(AuthContext)
-    const [userId, setUserId] = useState(auth.userData.id)
+    const [userId, setUserId] = useState(auth.userData?.id)
     const [msg, setMsg] = useState('')
     const [chatMsg, setChatMsg] = useState([])
-    const [connetionError, setConnetionError] = useState('')
+    const [connectionError, setConnectionError] = useState('')
     const [selectedUser, setSelectedUser] = useState(null)
     const [userList, setUserList] = useState([])
     const socketRef = useRef(null) //Using Ref instead of State
@@ -29,6 +29,8 @@ const ChatDialogueBox = ({isOpen, onClose}) => {
     const [selectedChatId, setSelectedChatId] = useState('')
     const lastMsgRef = useRef(null)
     const [isDisconnected, setIsDisconnected] = useState(false)
+    const [errorMessage, setErrorMessage] = useState('')
+    const [chatLoading, setChatLoading] = useState(false)
 
     const getUserList = async () => {
         try {
@@ -40,28 +42,31 @@ const ChatDialogueBox = ({isOpen, onClose}) => {
         }
     }
 
-    const getChatList = async () => {
-        try {
-            const chatsList = await axios.get('http://localhost:9000/chats/list');
-            console.log('chatsList', chatsList?.data)
+    // const getChatList = async () => {
+    //     try {
+    //         const url = 'http://localhost:9000/chats/list'
+    //         const chatsList = await axios.get(url, { headers: { Authorization: `Bearer ${auth.userData?.token}` } });
+    //         console.log('chatsList', chatsList?.data)
 
-            const initialChats = {} //Temp object to add fields in it
-            chatsList?.data?.forEach(item=>{
-                initialChats[item.chatId] = [];
-            })
-            setChats(initialChats) //Now set the chats state to initialChats object
-        } catch (err) {
-            console.log(err)
-        }
-    }
+    //         const initialChats = {} //Temp object to add fields in it
+    //         chatsList?.data?.forEach(item=>{
+    //             initialChats[item.chatId] = [];
+    //         })
+    //         setChats(initialChats) //Now set the chats state to initialChats object
+    //     } catch (err) {
+    //         console.log(err)
+    //     }
+    // }
 
     const getAParticularChat = async (chatId) => {
+        setChatLoading(true)
         try {
             console.log('chatId', chatId)
             const url = `http://localhost:9000/chats?chatId=${chatId}`
             const oneOnOneChat = await axios.get(url, { headers: { Authorization: `Bearer ${auth.userData?.token}` } });
             console.log('oneOnOneChat', oneOnOneChat?.data)
             
+            setErrorMessage('')
             setChats(prevChats => {
                 // Create a shallow copy of the previous chats
                 const newChats = { ...prevChats };
@@ -70,9 +75,10 @@ const ChatDialogueBox = ({isOpen, onClose}) => {
                 return newChats;
             });
             
-        } catch {
-            setSelectedChatId('')
+        } catch(error) {
+            setErrorMessage(error?.response?.data?.message)
         }
+        setChatLoading(false)
     }
 
     const sendMessageToServer = () => {
@@ -88,10 +94,10 @@ const ChatDialogueBox = ({isOpen, onClose}) => {
         }
     }
 
-    useEffect(() => {
-        getUserList(); //Fetching Users
-        getChatList(); //Fetching Chats in db
-    }, []) 
+    // useEffect(() => {
+        // getUserList(); //Fetching Users
+        // getChatList(); //Fetching Chats in db
+    // }, []) 
 
     useEffect(() => {
       if(isOpen) {
@@ -105,20 +111,21 @@ const ChatDialogueBox = ({isOpen, onClose}) => {
         socketRef.current.on('connect', () => {
             console.log(`Connected with socket ID: ${socketRef.current.id}`);
             setIsDisconnected(false)
+            getUserList();
             socketRef.current.emit('register', userId); //User Registeration
         });
     
         // Listen for incoming messages
         socketRef.current.on('message', (data) => {
             console.log(`Message from User ${data.from}: ${data.message}`);
-            setConnetionError('')
+            setConnectionError('')
             setChatMsg(prev=>[...prev, data])
         });
     
         // Listen for error messages
         socketRef.current.on('connect_error', (error) => {
             console.error('Connection Error:', error.message);
-            setConnetionError(error.message)
+            setConnectionError(error.message)
         });
 
         socketRef.current.on('disconnect', (reason) => {
@@ -136,6 +143,8 @@ const ChatDialogueBox = ({isOpen, onClose}) => {
         }
       }
     }, [isOpen, userId])
+
+    console.log('errorMessage', errorMessage)
 
 
     useEffect(() => {
@@ -176,9 +185,6 @@ const ChatDialogueBox = ({isOpen, onClose}) => {
     //seeing chats on state change
     useEffect(() => {
       console.log('chats', chats)
-    //   if(lastMsgId && chats[selectedChatId][chats[selectedChatId]?.length - 1]?.id != lastMsgId) {
-    //     setLastMsgId(chats[selectedChatId][chats[selectedChatId].length - 1]?.id)
-    //   }
       /* Scroll to the end of the chat to see latest messages.
       We can pass { behavior: 'smooth' } into scrollIntoView function for smooth scroll. */
       if(selectedChatId && chats[selectedChatId]?.length !== 0) lastMsgRef.current?.scrollIntoView();
@@ -195,6 +201,7 @@ const ChatDialogueBox = ({isOpen, onClose}) => {
                             className='btn btn-sm btn-primary text-light border-0'
                             onClick={()=>{
                                 setSelectedChatId('')
+                                setErrorMessage('')
                                 setSelectedUser(null)
                             }}
                         >
@@ -210,66 +217,94 @@ const ChatDialogueBox = ({isOpen, onClose}) => {
                             <Alert variant='danger' className='text-danger py-1 px-3'>Socket Connection Disconnected</Alert>
                         </div>
                         :
-                        <>
-                            {
-                                selectedUser?.id ? <>
+                        (
+                            selectedUser?.id ? (
+                                <>
                                     {
-                                        selectedChatId && chats ?
-                                        <div style={{display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', minHeight: '100%', paddingBottom: 5, overflowY: 'auto'}}>
-                                            {
-                                                chats[selectedChatId]?.map((item, index)=>(
-                                                    item.from === userId ? 
-                                                    (<UserChat message={item.message} />)
-                                                    :
-                                                    (<ResponseChat message={item.message} />)
-                                                ))
-                                            }
-                                            {
-                                                connetionError &&
-                                                <Alert variant='danger' className='text-danger'>Connection Error</Alert>
-                                            }
-                                            <div ref={lastMsgRef} />
-                                        </div>
-                                        : 
-                                        <div className='w-100'>
-                                            <text className='text-secondary d-flex flex-column justify-content-center' style={{minHeight: '320px'}}>
-                                                <span>No chat with</span>
-                                                <strong>{selectedUser?.firstname + ' ' + selectedUser?.lastname}</strong>
-                                            </text>
-                                        </div>
+                                        chatLoading ?
+                                        (
+                                            <div className='d-flex align-items-center justify-content-center' style={{minHeight: '320px'}}>
+                                                <Spinner animation="border" variant="primary" />
+                                            </div>
+                                        )                
+                                        :
+                                        selectedChatId &&
+                                        (
+                                            chats[selectedChatId]?.length > 0 ? (
+                                                <div style={{display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', minHeight: '100%', paddingBottom: 5, overflowY: 'auto'}}>
+                                                    {
+                                                        chats[selectedChatId]?.map((item, index) => (
+                                                            item.from === userId ? 
+                                                            (<UserChat key={index} message={item.message} />)
+                                                            :
+                                                            (<ResponseChat key={index} message={item.message} />)
+                                                        ))
+                                                    }
+                                                    {/*
+                                                        connectionError &&
+                                                        <Alert variant='danger' className='text-danger'>Connection Error</Alert>
+                                                    */}
+                                                    <div ref={lastMsgRef} />
+                                                </div>
+                                            ) : (
+                                                <div className='w-100'>
+                                                    <div className='text-secondary d-flex flex-column justify-content-center align-items-center' style={{minHeight: '320px'}}>
+                                                        <span>{errorMessage || "No messages available."}</span>
+                                                    </div>
+                                                </div>
+                                            )
+                                        )
+                                        // :
+                                        // (
+                                        //     // Optionally, show a placeholder or instruction when no chat is selected
+                                        //     <div className='w-100'>
+                                        //         <div className='text-secondary d-flex flex-column justify-content-center align-items-center' style={{minHeight: '320px'}}>
+                                        //             <span>Select a user to start chatting.</span>
+                                        //         </div>
+                                        //     </div>
+                                        // )
                                     }
                                 </>
-                                :
-                                <ListGroup defaultActiveKey="#link1" style={{overflowY: 'auto', minHeight: '100%'}}>
-                                    {
-                                        userList.length !== 0 &&
-                                        userList.map(user=>(
-                                            <ListGroup.Item key={user?.id} action onClick={() => setSelectedUser(user)}>
-                                                <div className='d-flex align-items-center'>
-                                                    <img
-                                                        src="https://media.istockphoto.com/id/1337144146/vector/default-avatar-profile-icon-vector.jpg?s=612x612&w=0&k=20&c=BIbFwuv7FxTWvh5S3vB6bkT0Qv8Vn8N5Ffseq84ClGI="
-                                                        alt="Avatar"
-                                                        class="avatar ms-2 me-3"
-                                                    />
-                                                    <text className='d-inline-block text-truncate'>{user?.firstname + ' ' + user?.lastname}</text>
-                                                </div>
-                                            </ListGroup.Item>
-                                        ))
-                                    }
-                                </ListGroup>
-                            }
-                        </>
+                                ) : (
+                                    <ListGroup defaultActiveKey="#link1" style={{overflowY: 'auto', minHeight: '100%'}}>
+                                        {
+                                            userList.length !== 0 &&
+                                            userList.map(user => (
+                                                <ListGroup.Item key={user?.id} action onClick={() => setSelectedUser(user)}>
+                                                    <div className='d-flex align-items-center'>
+                                                        <img
+                                                            src="https://media.istockphoto.com/id/1337144146/vector/default-avatar-profile-icon-vector.jpg?s=612x612&w=0&k=20&c=BIbFwuv7FxTWvh5S3vB6bkT0Qv8Vn8N5Ffseq84ClGI="
+                                                            alt="Avatar"
+                                                            className="avatar ms-2 me-3"
+                                                        />
+                                                        <span className='d-inline-block text-truncate'>{user?.firstname + ' ' + user?.lastname}</span>
+                                                    </div>
+                                                </ListGroup.Item>
+                                            ))
+                                        }
+                                    </ListGroup>
+                            )
+                        )
                     }
                 </Card.Body>
+
                 <Card.Footer className='d-flex px-1 py-1'>
                     <input
                         type='text'
                         className='form-control form-control-sm me-1'
                         value={msg}
-                        onKeyDown={(e)=>(e.key === 'Enter' && sendMessageToServer())}
+                        onKeyDown={(e)=>(e.key === 'Enter' && !chatLoading && sendMessageToServer())}
                         onChange={e=>setMsg(e.target.value)}
+                        disabled={chatLoading || isDisconnected || errorMessage}
+
                     />
-                    <Button size='sm'><i class="bi bi-arrow-up-right" onClick={sendMessageToServer}></i></Button>
+                    <Button 
+                        size='sm'
+                        disabled={chatLoading || isDisconnected || errorMessage}
+                        onClick={sendMessageToServer}
+                    >
+                        <i class="bi bi-arrow-up-right"></i>
+                    </Button>
                 </Card.Footer>
             </Card>
         </div>
