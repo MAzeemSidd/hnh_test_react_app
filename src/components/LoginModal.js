@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { Field, Formik, Form as FormikForm } from 'formik'
 import React, { useContext, useState } from 'react'
-import { Button, Modal } from 'react-bootstrap'
+import { Alert, Button, Modal } from 'react-bootstrap'
 import * as Yup from 'yup';
 import { AuthContext } from '../context/LoginContext';
 
@@ -14,9 +14,20 @@ const loginSchema = Yup.object().shape({
 
 const LoginModal = ({showLoginModal, handleLoginModalClose}) => {
   const auth = useContext(AuthContext)
+  const [errorMsg, setErrorMsg] = useState('')
 
   return (<>
-    <Modal show={showLoginModal} onHide={handleLoginModalClose}>
+    <Modal
+      show={showLoginModal}
+      onHide={()=> {
+        setErrorMsg('')
+        handleLoginModalClose();
+      }}
+      onExit={()=> {
+        setErrorMsg('')
+        handleLoginModalClose();
+      }}
+    >
       <Formik
         initialValues={{
           email: '',
@@ -25,6 +36,7 @@ const LoginModal = ({showLoginModal, handleLoginModalClose}) => {
         validationSchema={loginSchema}
         onSubmit={async (values) => {
           try {
+            if(errorMsg) setErrorMsg('')
             const response = await axios.post('http://localhost:9000/users/login', values)
             if(response?.status === 200){
               auth.loginUser(response?.data)
@@ -32,7 +44,8 @@ const LoginModal = ({showLoginModal, handleLoginModalClose}) => {
               handleLoginModalClose();
             }
           } catch (error) {
-            console.log('error', error)
+            console.log('LoginModal - error -->', error?.response?.data)
+            setErrorMsg(error?.response?.data)
           }
         }}
       >
@@ -44,13 +57,22 @@ const LoginModal = ({showLoginModal, handleLoginModalClose}) => {
 
             <Modal.Body>
 
-              <div class="form-group my-3">
+              {
+                errorMsg && (
+                  <Alert variant='danger' className='py-2 m-0'>
+                    <i style={{fontSize: 20}} class="bi bi-exclamation-triangle-fill text-danger me-2"></i>
+                    <text className='text-danger ms-2'>{errorMsg}</text>
+                  </Alert>
+                )
+              }
+
+              <div className="form-group my-3">
                 <label for="email">Email address</label>
                 <Field name="email" type='email' id='email' className='form-control' placeholder='email@example.com' />
                 {errors.email && touched.email ? <div className='text-danger'>{errors.email}</div> : null}
               </div>
 
-              <div class="form-group my-3">
+              <div className="form-group my-3">
                 <label for="password">Password</label>
                 <Field name="password" type='password' id='password' className='form-control' placeholder='Provide a strong password' />
                 {errors.password && touched.password ? <div className='text-danger'>{errors.password}</div> : null}

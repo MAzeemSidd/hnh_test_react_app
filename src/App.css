@@ -81,6 +81,8 @@
 
 .card-body {
   padding: 0;
+  overflow-y: auto;
+  max-height: 400px;
 }
 
 .chat-card {
@@ -88,8 +90,8 @@
   bottom: 30px;
   right: 30px;
   z-index: 110;
-  width: 300px;
-  height: 400px;
+  width: 350px;
+  height: 420px;
 }
 
 .user-chat-div {
@@ -99,7 +101,7 @@
 }
 .user-chat-div .user-chat {
   color: white;
-  font-size: 12px;
+  font-size: 13px;
   text-align: left;
   max-width: 220px;
   padding: 5px 10px;
@@ -109,14 +111,30 @@
   background-color: #3a93cf;
 }
 
+/* @keyframes msgSlideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0px);
+  }
+}
+
+.msg-slide-in-up {
+  animation: msgSlideInUp .5s ease forwards;
+} */
+
 .response-chat-div {
   display: flex;
   justify-content: start;
   margin: 5px 10px;
 }
+
 .response-chat-div .response-chat {
   color: rgb(75, 73, 73);
-  font-size: 12px;
+  font-size: 13px;
   text-align: left;
   max-width: 220px;
   padding: 5px 10px;
@@ -133,7 +151,7 @@
   border-radius: 50%;
 }
 
-@keyframes slideInUp {
+@keyframes chatboxSlideInUp {
   from {
     opacity: 0;
     transform: translateY(70px);
@@ -144,8 +162,23 @@
   }
 }
 
-.slide-in-up {
-  animation: slideInUp 1s ease-in-out forwards; /* Adjust duration (2s) as needed */
+.chatbox-slide-in-up {
+  animation: chatboxSlideInUp .4s ease-out forwards; /* Adjust duration (2s) as needed */
+}
+
+@keyframes chatboxSlideOutDown {
+  from {
+    opacity: 1;
+    transform: translateY(0px);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(70px);
+  }
+}
+
+.chatbox-slide-out-down {
+  animation: chatboxSlideOutDown .2s ease forwards; /* Adjust duration (2s) as needed */
 }
 
 .products {

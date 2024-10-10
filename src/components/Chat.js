@@ -16,7 +16,7 @@ const UserChat = ({message}) => (
     </div>
 )
 
-const ChatDialogueBox = ({isOpen, onClose}) => {
+const ChatDialogueBox = ({isOpen, isClosing, onClose, handleLoginModalOpen}) => {
     const auth = useContext(AuthContext)
     const [userId, setUserId] = useState(auth.userData?.id)
     const [msg, setMsg] = useState('')
@@ -34,36 +34,34 @@ const ChatDialogueBox = ({isOpen, onClose}) => {
 
     const getUserList = async () => {
         try {
-            const users = await axios.get('http://localhost:9000/users');
+            const users = await axios.get('http://localhost:9000/users',
+                {
+                    headers: { Authorization: `Bearer ${auth.userData?.token}` }
+                }
+            );
             const filteredUser = users?.data?.filter(user=>user.id !== auth.userData.id)
             setUserList(filteredUser)
         } catch (err) {
+            console.log('err?.response', err?.response?.data?.message)
+            if(err?.response?.data?.message == 'jwt expired') {
+                onClose()
+                auth.logoutUser()
+                handleLoginModalOpen()
+                alert('Session Expired!');
+            }
             console.log(err)
         }
     }
-
-    // const getChatList = async () => {
-    //     try {
-    //         const url = 'http://localhost:9000/chats/list'
-    //         const chatsList = await axios.get(url, { headers: { Authorization: `Bearer ${auth.userData?.token}` } });
-    //         console.log('chatsList', chatsList?.data)
-
-    //         const initialChats = {} //Temp object to add fields in it
-    //         chatsList?.data?.forEach(item=>{
-    //             initialChats[item.chatId] = [];
-    //         })
-    //         setChats(initialChats) //Now set the chats state to initialChats object
-    //     } catch (err) {
-    //         console.log(err)
-    //     }
-    // }
 
     const getAParticularChat = async (chatId) => {
         setChatLoading(true)
         try {
             console.log('chatId', chatId)
-            const url = `http://localhost:9000/chats?chatId=${chatId}`
-            const oneOnOneChat = await axios.get(url, { headers: { Authorization: `Bearer ${auth.userData?.token}` } });
+            const oneOnOneChat = await axios.get(`http://localhost:9000/chats?chatId=${chatId}`,
+                {
+                    headers: { Authorization: `Bearer ${auth.userData?.token}` }
+                }
+            );
             console.log('oneOnOneChat', oneOnOneChat?.data)
             
             setErrorMessage('')
@@ -92,12 +90,7 @@ const ChatDialogueBox = ({isOpen, onClose}) => {
             
             setMsg('');
         }
-    }
-
-    // useEffect(() => {
-        // getUserList(); //Fetching Users
-        // getChatList(); //Fetching Chats in db
-    // }, []) 
+    } 
 
     useEffect(() => {
       if(isOpen) {
@@ -144,9 +137,6 @@ const ChatDialogueBox = ({isOpen, onClose}) => {
       }
     }, [isOpen, userId])
 
-    console.log('errorMessage', errorMessage)
-
-
     useEffect(() => {
       if (chatMsg.length > 0) {
         const lastMsg = chatMsg[chatMsg.length - 1];
@@ -191,26 +181,34 @@ const ChatDialogueBox = ({isOpen, onClose}) => {
     }, [chats])
 
     return(
-        <div className='chat-card slide-in-up'>
+        <div className={`chat-card ${isOpen && 'chatbox-slide-in-up'} ${isClosing && 'chatbox-slide-out-down'}`}>
             <Card style={{height: '100%', width: '100%'}}>
                 <Card.Header className='py-1 px-1 d-flex flex-row-reverse justify-content-between bg-primary'>
-                    <button className='btn btn-sm btn-primary text-light border-0' onClick={onClose}><i class="bi bi-x-lg"></i></button>
-                    {
-                        selectedUser &&
-                        <button
-                            className='btn btn-sm btn-primary text-light border-0'
-                            onClick={()=>{
-                                setSelectedChatId('')
-                                setErrorMessage('')
-                                setSelectedUser(null)
-                            }}
-                        >
-                            <i class="bi bi-arrow-left me-1"></i>
-                            {/* <text>Back</text> */}
-                        </button>
-                    }
+                    <button className='btn btn-sm btn-primary text-light border-0' onClick={onClose}>
+                        <i className="bi bi-x-lg"></i>
+                    </button>
+                    <div className='d-flex align-items-baseline'>
+                        {
+                            selectedUser &&
+                            <>
+                                <button
+                                    className='btn btn-sm btn-primary text-light border-0'
+                                    onClick={()=>{
+                                        setSelectedChatId('')
+                                        setErrorMessage('')
+                                        setSelectedUser(null)
+                                    }}
+                                >
+                                    <i className="bi bi-arrow-left me-1"></i>
+                                </button>
+                                <div className='d-flex my-0 align-bottom' style={{width: 250}}>
+                                    <text className='ms-2 fw-bold text-light text-truncate'>{selectedUser?.firstname + ' ' + selectedUser?.lastname}</text>
+                                </div>
+                            </>
+                        }
+                    </div>
                 </Card.Header>
-                <Card.Body className='card-body' style={{overflowY: 'scroll', maxHeight: '400px'}}>
+                <Card.Body className='card-body'>
                     {
                         isDisconnected ?
                         <div className='d-flex align-items-center justify-content-center' style={{minHeight: '320px'}}>
@@ -254,15 +252,6 @@ const ChatDialogueBox = ({isOpen, onClose}) => {
                                                 </div>
                                             )
                                         )
-                                        // :
-                                        // (
-                                        //     // Optionally, show a placeholder or instruction when no chat is selected
-                                        //     <div className='w-100'>
-                                        //         <div className='text-secondary d-flex flex-column justify-content-center align-items-center' style={{minHeight: '320px'}}>
-                                        //             <span>Select a user to start chatting.</span>
-                                        //         </div>
-                                        //     </div>
-                                        // )
                                     }
                                 </>
                                 ) : (
@@ -295,15 +284,15 @@ const ChatDialogueBox = ({isOpen, onClose}) => {
                         value={msg}
                         onKeyDown={(e)=>(e.key === 'Enter' && !chatLoading && sendMessageToServer())}
                         onChange={e=>setMsg(e.target.value)}
-                        disabled={chatLoading || isDisconnected || errorMessage}
+                        disabled={chatLoading || isDisconnected}
 
                     />
                     <Button 
                         size='sm'
-                        disabled={chatLoading || isDisconnected || errorMessage}
+                        disabled={chatLoading || isDisconnected}
                         onClick={sendMessageToServer}
                     >
-                        <i class="bi bi-arrow-up-right"></i>
+                        <i className="bi bi-arrow-up-right"></i>
                     </Button>
                 </Card.Footer>
             </Card>
@@ -312,23 +301,41 @@ const ChatDialogueBox = ({isOpen, onClose}) => {
 }
 
 const ChatBtn = ({onOpen}) => (
-    <button class="btn btn-primary floating-btn" onClick={onOpen}>
-        <i class="btn-icon bi bi-chat"></i>
+    <button className="btn btn-primary floating-btn" onClick={onOpen}>
+        <i className="btn-icon bi bi-chat"></i>
     </button>
 )
 
 const Chat = ({handleLoginModalOpen}) => {
   const auth = useContext(AuthContext)
   const [isOpen, setIsOpen] = useState(false)
+  const [isClosing, setIsClosing] = useState(false);
   
   const handleChatOpen = () => {
-    if(auth.loginStatus) return setIsOpen(true);
+    if(auth.userData?.token) return setIsOpen(true);
     handleLoginModalOpen();
   }
 
+  const handleChatClose = () => {
+    setIsClosing(true); // Trigger the closing animation
+    setTimeout(() => {
+        setIsOpen(false); // Actually unmount the component after animation
+        setIsClosing(false); // Reset closing state
+    }, 200); // Duration should match the animation time (0.4s)
+  };
+
+  useEffect(()=>{
+    if(!auth.userData) setIsOpen(false);
+  },[auth.userData])
+
   return (
     <>
-        {isOpen ? <ChatDialogueBox isOpen={isOpen} onClose={()=>setIsOpen(false)} /> : <ChatBtn onOpen={handleChatOpen} />}
+        {
+            auth.userData && (isOpen || isClosing) ?
+            <ChatDialogueBox isOpen={isOpen} isClosing={isClosing} onClose={handleChatClose} handleLoginModalOpen={handleLoginModalOpen} />
+            :
+            <ChatBtn onOpen={handleChatOpen} />
+        }
     </>
   )
 }

@@ -24,7 +24,7 @@ const SignupModal = ({showSignupModal, handleClose}) => {
   const auth = useContext(AuthContext)
 
   return (<>
-    <Modal show={showSignupModal} onHide={handleClose}>
+    <Modal show={showSignupModal} onHide={handleClose} onExit={handleClose}>
       <Formik
         initialValues={{
           firstname: '',
@@ -40,7 +40,6 @@ const SignupModal = ({showSignupModal, handleClose}) => {
             if(response?.status === 200){
               auth.loginUser(response?.data)
               console.log('response.data', response?.data)
-              // localStorage.setItem('loginStatus', JSON.stringify(true));
               // localStorage.setItem('loginUser', JSON.stringify(response.data));
               handleClose();
             }
@@ -57,25 +56,25 @@ const SignupModal = ({showSignupModal, handleClose}) => {
 
             <Modal.Body>
               
-              <div class="form-group my-3">
+              <div className="form-group my-3">
                 <label for="firstname">First Name</label>
                 <Field name="firstname" id='firstname' className='form-control' placeholder='example: "John"' />
                 {errors.firstname && touched.firstname ? <div className='text-danger'>{errors.firstname}</div> : null}
               </div>
 
-              <div class="form-group my-3">
+              <div className="form-group my-3">
                 <label for="lastname">Last Name</label>
                 <Field name="lastname" id='lastname' className='form-control' placeholder='example: "Doe"' />
                 {errors.lastname && touched.lastname ? <div className='text-danger'>{errors.lastname}</div> : null}
               </div>
 
-              <div class="form-group my-3">
+              <div className="form-group my-3">
                 <label for="email">Email address</label>
                 <Field name="email" type='email' id='email' className='form-control' placeholder='email@example.com' />
                 {errors.email && touched.email ? <div className='text-danger'>{errors.email}</div> : null}
               </div>
 
-              <div class="form-group my-3">
+              <div className="form-group my-3">
                 <label for="password">Password</label>
                 <Field name="password" type='password' id='password' className='form-control' placeholder='Provide a strong password' />
                 {errors.password && touched.password ? <div className='text-danger'>{errors.password}</div> : null}

@@ -53,15 +53,17 @@ const Header = ({handleShow, handleLoginModalOpen}) => {
 
         <Col className='col-3 d-flex justify-content-center align-items-center' style={{height: '75px'}}>
             {
-                auth.loginStatus ?
+                auth.userData?.token ?
                 <>
                     <div className='d-flex align-items-center me-3'>
                         <img
                             src="https://media.istockphoto.com/id/1337144146/vector/default-avatar-profile-icon-vector.jpg?s=612x612&w=0&k=20&c=BIbFwuv7FxTWvh5S3vB6bkT0Qv8Vn8N5Ffseq84ClGI="
                             alt="Avatar"
-                            class="avatar me-2"
+                            className="avatar me-2"
                         />
-                        <text className='text-secondary'>{auth?.userData?.firstname + ' ' + auth?.userData?.lastname}</text>
+                        <text className='d-inline-block text-truncate text-secondary' style={{width: 150}}>
+                            {auth?.userData?.firstname + ' ' + auth?.userData?.lastname}
+                        </text>
                     </div>
                     <text className='text-secondary'>|</text>
                     <Button onClick={onLoggingOut} variant="outline-light" className='text-secondary border-0 ms-2'>Logout</Button>
