@@ -9,7 +9,7 @@ import { AuthProvider } from './context/LoginContext';
 
 function App() {
   const [showLoginModal, setShowLoginModal] = useState(false)
-  const [showSignupModal, setShowSignupModal] = useState(false);
+  const [showSignupModal, setShowSignupModal] = useState(false)
 
   return (
     <div className='App container-fluid bg-light'>
