@@ -217,3 +217,8 @@
 .card-body::-webkit-scrollbar-thumb:hover {
   background: #909090;
 }
+
+.form-control:focus {
+  outline: none; /* Remove the default outline */
+  box-shadow: 0 0 0 0.05rem rgba(26, 98, 143, 0.5); /* Customize the focus ring color */
+}

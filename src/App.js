@@ -18,7 +18,7 @@ function App() {
         <Body />
         <Chat handleLoginModalOpen={()=>setShowLoginModal(true)} />
         <LoginModal showLoginModal={showLoginModal} handleLoginModalClose={()=>setShowLoginModal(false)} />
-        <SignupModal showSignupModal={showSignupModal} handleClose={() => setShowSignupModal(false)} />
+        <SignupModal showSignupModal={showSignupModal} handleSignupModalClose={() => setShowSignupModal(false)} />
       </AuthProvider>
     </div>
   );

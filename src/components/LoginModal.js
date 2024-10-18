@@ -7,10 +7,16 @@ import { AuthContext } from '../context/LoginContext';
 import { Button as Antd_Button, Modal, Alert as Antd_Alert } from 'antd';
 
 const loginSchema = Yup.object().shape({
-  email: Yup.string().email('Invalid email').required('Enter email'),
+  email: Yup.string()
+    .email('Invalid email format')
+    .required('Email is required'),
+  
   password: Yup.string()
-  .min(8, 'Minimum 8 characters long')
-  .required('Enter password'),
+    .min(8, 'Password must be at least 8 characters long')
+    .matches(/[A-Z]/, 'Password must contain at least one uppercase letter')
+    .matches(/\d/, 'Password must contain at least one number')
+    .matches(/[\W_]/, 'Password must contain at least one special character')
+    .required('Password is required'),
 });
 
 const LoginModal = ({showLoginModal, handleLoginModalClose}) => {
@@ -50,7 +56,7 @@ const LoginModal = ({showLoginModal, handleLoginModalClose}) => {
       }}
     >
       {({ errors, touched, handleSubmit, isSubmitting }) => (
-      /* OnSubmit and onKeyDown is used here for the form submittion on
+      /* OnSubmit and onKeyDown is used here for the form submission on
       enter button, and that's why we don't need to pass handleSubmit()
       function inside onOk prop of Antd Modal */
       <FormikForm
@@ -88,10 +94,6 @@ const LoginModal = ({showLoginModal, handleLoginModalClose}) => {
         >
             {
               errorMsg && (
-                // <Alert variant='danger' className='py-2 m-0'>
-                //   <i style={{fontSize: 20}} class="bi bi-exclamation-triangle-fill text-danger me-2"></i>
-                //   <text className='text-danger ms-2'>{errorMsg}</text>
-                // </Alert>
                 <Antd_Alert
                   type="error"
                   message={
